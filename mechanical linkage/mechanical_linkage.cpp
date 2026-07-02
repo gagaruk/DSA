@@ -70,11 +70,12 @@ class c_indirectionTable{
           break;
         }
       }
-      
+
+      *table_addr = nullptr;
       _push_to_gap(table_addr);
     }
-
     void delete_point(point** table_addr){
+      *table_addr = nullptr;
       _push_to_gap(table_addr);
     }
     
