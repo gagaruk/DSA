@@ -5,105 +5,48 @@ struct point{
   int y;
 };
 
+union page_slot{
+  point data;
+  page_slot* next_free;
+};
+
 struct page{
   static const int capacity = 64;
   int count = 0;
-  point points[capacity];
+  page_slot slots[capacity];
   page* prev = nullptr;
+  page_slot* first_free;
 };
 
-class c_indirectionTable{
-  private:
-    int _capacity = 128;
-    point** _head;
-    point** _tail;
-
-    
-    int _gap_capacity = 64;
-    point*** _gap_slots;
-    point*** _gap_tail;
-
-    void _push_to_gap(point** slot){
-      if(_gap_tail - _gap_tail >= _capacity){
-        resize_array(_gap_slots, _gap_capacity, 2.0);
-        _gap_tail = _gap_slots + _gap_capacity;
-      }
-      *_gap_tail = slot;
-      _gap_tail++;
-
-    }
-    point** _pop_from_gap(){
-      if(_gap_tail - _gap_slots <= _gap_capacity*0.25){
-        resize_array(_gap_slots, _gap_capacity, 0.5);
-        _gap_tail = _gap_slots + _gap_capacity;
-      }
-      _gap_tail--;
-      return *_gap_tail;
-    }
-
-  public:
-    c_indirectionTable(){
-      _head = new  point*[_capacity];
-      _gap_slots = new point**[_gap_capacity];
-    }
-    ~c_indirectionTable(){
-      delete[] _head;
-      delete[] _gap_slots;
-    }
-
-    void add_point(point* new_point){
-      if(_gap_slots != _gap_tail){
-        point** table_slot = _pop_from_gap();
-        *table_slot = new_point;
-      }else{
-        *_tail = new_point;
-        _tail++;
-      }
-    }
-    void delete_point(point* point_to_delete){
-      point** table_addr;
-      int table_size = _tail-_head;
-
-      for(int i=0;i<table_size;i++){
-        if(*(_head + i)==point_to_delete){
-          table_addr = _head+i;
-          break;
-        }
-      }
-
-      *table_addr = nullptr;
-      _push_to_gap(table_addr);
-    }
-    void delete_point(point** table_addr){
-      *table_addr = nullptr;
-      _push_to_gap(table_addr);
-    }
-    
-    void set_points(point* point_to_change, point* reference_point){
-      point** table_addr_to_change;
-      int table_size = _tail-_head;
-
-      for(int i=0;i<table_size;i++){
-        if(*(_head + i)==point_to_change){
-          table_addr_to_change = _head+i;
-          break;
-        }
-      }
-
-      *table_addr_to_change= reference_point;
-    }
-
-    void set_points(point** point_to_change, point** reference_point){
-      *point_to_change = *reference_point;
-    }
+struct indirectionTable{
+  int capacity = 128;
+  page_slot** head = new page_slot*[capacity];
+  page_slot** tail = head;
 };
+
+struct table_gap_slots{
+  int capacity = 64;
+  page_slot*** head = new page_slot**[capacity];
+  page_slot*** tail = head;
+};
+
+
 
 template <typename T>
 void resizeArray(T*& array_ptr, int& current_capacity, double resize_factor);
 
-point* create_point(int x, int y);
+void create_point(int x, int y);  
+page_slot* allocate_point(int x, int y);
 
-c_indirectionTable indirectionTable = c_indirectionTable();
+void push_to_gap(page_slot** table_slot);
+page_slot** pop_from_gap();
+
+void add_to_table(page_slot* new_point);
+void delete_from_table(int index);
+
+indirectionTable pointsTable;
+table_gap_slots gaps;
+
 
 int main(){
   std::string inputString;
@@ -138,8 +81,7 @@ int main(){
       std::cout << "Y: ";
       std::getline(std::cin, y);
 
-      point* point = create_point(std::stoi(x), std::stoi(y));
-      indirectionTable.add_point(point);
+      create_point(std::stoi(x), std::stoi(y));
 
       break;
     }
@@ -175,5 +117,46 @@ void resize_array(T*& array_ptr, int& current_capacity, double resize_factor){
   current_capacity = new_capacity;
 }
 
-point* create_point(int x, int y){
+void create_point(int x, int y){
+  page_slot* slot;
+  return slot;
 }
+
+page_slot* allocate_point_to_page(int x, int y){
+  
+}
+
+void push_to_gap(page_slot** table_slot){
+      if(gaps.head - gaps.tail >= gaps.capacity){
+        resize_array(gaps.head, gaps.capacity, 2.0);
+        gaps.tail = gaps.head + gaps.capacity;
+      }
+      *gaps.tail = table_slot;
+      gaps.tail++;
+}
+
+page_slot** pop_from_gap(){
+      if(gaps.tail - gaps.head <= gaps.capacity*0.25){
+        resize_array(gaps.head, gaps.capacity, 0.5);
+        gaps.tail = gaps.head + gaps.capacity;
+      }
+      gaps.tail--;
+      return *gaps.tail;
+}
+
+void add_point_to_table(page_slot* new_point){
+  if(gaps.head != gaps.tail){
+    page_slot** table_addr = pop_from_gap();
+    *table_addr = new_point;
+  }else{
+    *pointsTable.tail = new_point;
+    pointsTable.tail++;
+  }
+}
+
+void delete_point(int index){
+     page_slot** table_addr = pointsTable.head+index;
+      *table_addr = nullptr;
+      push_to_gap(table_addr);
+}
+
