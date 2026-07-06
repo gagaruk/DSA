@@ -1,10 +1,14 @@
 #include <iostream>
 #include <math.h>
 
+//program object definitions
+
 //entities
 struct point_t{
-  double x,y;
-  double global_angle, local_angle = 0;
+  double x;
+  double y;
+  double global_angle; 
+  double local_angle;
 };
 
 enum link_type{
@@ -12,7 +16,6 @@ enum link_type{
   ROTATIONAL,
   RIGID
 };
-
 struct linkage_t{
   int parent;
   int child;
@@ -28,7 +31,6 @@ union point_slot_t{
   point_t data;
   point_slot_t* next_free;
 };
-
 struct point_page_t{
   static const int capacity = 64;
   int count = 0;
@@ -36,13 +38,11 @@ struct point_page_t{
   point_page_t* prev = nullptr;
   point_slot_t* top_free = nullptr;
 };
-
 struct point_indirectionTable_t{
   int capacity = 128;
   point_slot_t** head = new point_slot_t*[capacity];
   point_slot_t** tail = head;
 };
-
 struct point_gap_slots_t{
   int capacity = 64;
   point_slot_t*** head = new point_slot_t**[capacity];
@@ -53,7 +53,6 @@ union linkage_slot_t{ //same as point_slot
   linkage_t data;
   linkage_slot_t* next_free;
 };
-
 struct linkage_page_t{ //same as point_page 
   static const int capacity = 64;
   int count = 0;
@@ -61,19 +60,16 @@ struct linkage_page_t{ //same as point_page
   linkage_page_t* prev = nullptr;
   linkage_slot_t* top_free = nullptr; 
 };
-
 struct linkage_indirectionTable_t{ //same as point_indirectionTable 
   int capacity = 128;
   linkage_slot_t** head = new linkage_slot_t*[capacity];
   linkage_slot_t** tail = head;
 };
-
 struct linkage_gap_slots_t{ // same as linkage_indirectionTable
   int capacity = 64;
   linkage_slot_t*** head = new linkage_slot_t**[capacity];
-  linkage_slot_t*** tail = new linkage_slot_t**[capacity];
+  linkage_slot_t*** tail = head;
 };
-
 struct evaluation_order_t{
   int capacity = 128;
   linkage_slot_t** head = new linkage_slot_t*[capacity];
@@ -83,18 +79,34 @@ struct evaluation_order_t{
 
 };
 
+struct display_t{
+  static constexpr double x_min = -15.0;
+  static constexpr double x_max = 15.0;
+  static constexpr double y_min = -15.0;
+  static constexpr double y_max = 15.0;
+
+  static const int width = 90;
+  static const int height = 30;
+  static const int character_width = 3;
+
+  static const int logical_width = width/character_width;
+  
+  inline static char buffer[static_cast<int>(width/character_width)*height]; //I know I could I used a string but the goal is keeping it low level u know
+};
+
+//program functions
 template <typename T>
 void resize_array(T*& array_ptr, int& current_capacity, double resize_factor);
 
 void create_point(int x, int y);
-void create_linkage(point_slot_t* parent_point, point_slot_t* child_point, link_type type);
+void create_linkage(int parent_point, int child_point, link_type type, char render_char);
   
-
 void delete_node(int index);
 void delete_node(int point_a, int point_b);
 
 point_slot_t* allocate_node(int x, int y);
-linkage_slot_t* allocate_node(int parent_point, int child_point, link_type, char render_char);
+linkage_slot_t* 
+allocate_node(int parent_point, int child_point, link_type, char render_char);
 
 void deallocate_node(point_slot_t*);
 void deallocate_node(linkage_slot_t*);
@@ -106,80 +118,179 @@ linkage_slot_t** add_to_table(linkage_slot_t* new_linkage);
 void push_to_gap(point_slot_t** table_slot);
 void push_to_gap(linkage_slot_t** table_slot);
 
-point_slot_t** pop_from_gap(point_indirectionTable_t* table);
-linkage_slot_t** pop_from_gap(linkage_indirectionTable_t* table);
+point_slot_t** pop_from_gap(const point_indirectionTable_t& table);
+linkage_slot_t** pop_from_gap(const linkage_indirectionTable_t& table);
 
 void add_to_evaluation(linkage_slot_t** linkage);
 void delete_from_evaluation(linkage_slot_t** linkage);
 void regenerate_evaluation_order();
 
+void add_points_to_buffer();
+void add_linkages_to_buffer();
+void flush_buffer();
+void clear_buffer();
+
+void display_nodes();
+
+//program objects
 point_indirectionTable_t pointsTable;
 point_gap_slots_t point_gaps;
 
 linkage_indirectionTable_t linkagesTable;
 linkage_gap_slots_t linkage_gaps;
 
-point_page_t* point_pageStack = new point_page_t{};
-linkage_page_t* linkage_pageStack = new linkage_page_t{};
+point_page_t* point_pageStack = new point_page_t;
+linkage_page_t* linkage_pageStack = new linkage_page_t;
 
 evaluation_order_t evaluation_order;
 
+display_t display;
 
 int main(){
+  clear_buffer();
+
   std::string inputString;
   int op;
 
-  std::cout << "Operations:\n";
-  std::cout << "1. Add point\n";
-  std::cout << "2. Remove point\n";
-  std::cout << "3. Display points\n\n";
+  while(true){
+    std::cout << "Operations:\n";
+    std::cout << "0. Add point\n"; //complete
+    std::cout << "1. Remove point\n"; //complete
 
-  std::cout << "Enter operation number: ";  
-  std::getline(std::cin, inputString);
-  op = std::stoi(inputString);
+    std::cout << "2. Add linkage\n";
+    std::cout << "3. Delete linkage\n";
 
+    std::cout << "4. Display nodes\n";
+    std::cout << "5. Apply Transformation\n";
+    std::cout << "6. Reset\n" << std::endl;
 
-  while(op < 1 || op > 3){
-    std::cout << "Invalid operation number.\n";
-    std::cout << "Please enter a valid operation number (1, 2, or 3): ";
+    std::cout << "Enter operation number: ";  
     std::getline(std::cin, inputString);
-    op = std::stoi(inputString);
-  }
-  switch(op){
-    case 1:{
-      std::string x;
-      std::string y;
 
-      std::cout << "Add point operation selected.\n\n"; 
-      std::cout << "Choose enter coordinates" << std::endl;
+    
+    op = (inputString.size() == 1 && std::isdigit(inputString[0])) ? std::stoi(inputString) : -1;
 
-      std::cout << "X: ";
-      std::getline(std::cin, x);
-      std::cout << "Y: ";
-      std::getline(std::cin, y);
-
-      create_point(std::stoi(x), std::stoi(y));
-
-      break;
+    if(op < 0 || op > 6 ){
+      std::cout<<op;
+      std::cout << "Invalid operation number.\n";
+      std::cout << "Please enter a valid operation number (0, 1, 2, 3, 4, 5, 6): ";
+      std::cout << "\n" << std::endl;
+      continue;
     }
-    case 2:{
-      std::string index;
-      std::cout << "Remove point operation selected.\n\n";
 
-      std::cout << "Select point(index): ";
-      std::getline(std::cin, index);
-      
-      delete_node(std::stoi(index));
-      break;
+    try{
+      switch(op){
+        case 0:{
+          int x;
+          int y;
+
+          std::string x_str;
+          std::string y_str;
+
+          std::cout << "Add point operation selected.\n\n"; 
+          std::cout << "Choose enter coordinates" << std::endl;
+
+          std::cout << "X: ";
+          std::getline(std::cin, x_str);
+          std::cout << "Y: ";
+          std::getline(std::cin, y_str);
+
+          x = std::stoi(x_str);
+          y = std::stoi(y_str);
+
+          if(x>display.x_max || y>display.y_max || x<display.x_min || y<display.y_min){
+            std::cout << "X or Y value exceeds the world limitations:\n " 
+            << "X_min= " << display.x_min << ",  X_max= " << display.x_max << "| Y_min= " << display.y_min << ",  Y_max= " << display.y_max << std::endl;
+            continue;
+          }
+          create_point(x, y);
+          break;
+        }
+        case 1:{
+          std::string idx_str;
+          int idx;
+
+          std::cout << "Remove point operation selected.\n\n";
+          std::cout << "Select point(index): ";
+          std::getline(std::cin, idx_str);
+
+          for(int i=0; i<idx_str.size();i++){
+            if(!std::isdigit(idx_str[i])){
+              std::cout << "Wrong entry redirecting to the main menu" << std::endl;
+              continue;
+            }
+          }
+          idx = std::stoi(idx_str);
+          delete_node(idx);
+          break;
+        }
+        case 2:{
+          std::string parent_str;
+          std::string child_str;
+          std::string type_str;
+          std::string render_char_str;
+          
+          int parent_idx;
+          int child_idx;
+          link_type type;
+          char render_char;
+
+          std::cout << "Add linkages operation selected.\n\n";
+          std::cout << "Determine properties:" << std::endl;
+
+          std::cout << "Parent point(idx): ";
+          std::getline(std::cin, parent_str);
+          std::cout << "Child point(idx): ";
+          std::getline(std::cin, child_str);
+          std::cout << "Render char:";
+          std::getline(std::cin, render_char_str);
+          std::cout << "Linkage Types: 1.Visual | 2.Rotational | 3.Rigid\n";
+          std::cout << "Enter the type-number: ";
+          std::getline(std::cin, type_str);
+
+          parent_idx = std::stoi(parent_str);
+          child_idx = std::stoi(child_str);
+          type = static_cast<link_type>(std::stoi(type_str));
+          render_char = (render_char_str.empty()) ? '*' : render_char_str[0];
+          create_linkage(parent_idx, child_idx, type, render_char);
+          break;
+        }  
+        case 3:{
+          std::string point_a_str;
+          std::string point_b_str;
+
+          int point_a_idx;
+          int point_b_idx;
+
+          std::cout << "Delete Linkag operation selected";
+          std::cout << "Enter linkage points:" << std::endl;
+          std::cout << "Point A(index): ";
+
+          std::getline(std::cin, point_a_str);
+          point_a_idx = std::stoi(point_a_str);
+          std::getline(std::cin, point_b_str);
+          point_b_idx = std::stoi(point_b_str);
+
+          delete_node(point_a_idx,point_b_idx);
+          
+          break;
+        }
+        case 4:
+          std::cout << "Display nodes operation selected.\n\n";
+          display_nodes();
+          break;
+        case 5:
+          break;
+        case 6:
+          break;
+        default: 
+          break;
+      }
     }
-    case 3:
-      std::cout << "Display points operation selected.\n\n";
-      break;
-    default: 
-      break;
+    catch(...){
+      std::cout<<"\nWritten something wrong to an input field\n" << std::endl;
+    }
   }
-
-
   return 0;
 }
 
@@ -232,10 +343,10 @@ void delete_node(int point_a, int point_b){
 point_slot_t* allocate_node(int x, int y){
   point_slot_t* allocation_addr;
   point_page_t* current_point_page;
-  if(point_pageStack->count = 0 && point_pageStack->prev->count < point_pageStack->prev->capacity){
+  if(point_pageStack->count == 0 && point_pageStack->prev != nullptr && point_pageStack->prev->count < point_pageStack->prev->capacity){
     current_point_page = point_pageStack->prev;
   }else{
-    current_point_page = point_pageStack;
+    current_point_page = point_pageStack; 
   }
 
   if(point_pageStack->top_free != nullptr){
@@ -263,7 +374,7 @@ point_slot_t* allocate_node(int x, int y){
 linkage_slot_t* allocate_node(int parent_point, int child_point, link_type type, char render_char){
   linkage_slot_t* allocation_addr;
   linkage_page_t* current_linkage_page;
-  if(linkage_pageStack->count = 0 && linkage_pageStack->prev->count < linkage_pageStack->prev->capacity){
+  if(linkage_pageStack->count == 0 && linkage_pageStack->prev != nullptr && linkage_pageStack->prev->count < linkage_pageStack->prev->capacity){
     current_linkage_page = linkage_pageStack->prev;
   }else{
     current_linkage_page = linkage_pageStack;
@@ -294,7 +405,7 @@ linkage_slot_t* allocate_node(int parent_point, int child_point, link_type type,
   double dy = pointsTable.head[child_point]->data.y - pointsTable.head[parent_point]->data.y;
   double dx = pointsTable.head[child_point]->data.x - pointsTable.head[parent_point]->data.x;
 
-  double global_angle = std::atan2(dy, dx);
+  double global_angle = (dy == 0.0 && dx == 0.0) ? 0: std::atan2(dy, dx);
   allocation_addr->data.length = std::sqrt((dx * dx) + (dy * dy));
   allocation_addr->data.base_angle = global_angle;
 
@@ -315,13 +426,11 @@ void deallocate_node(point_slot_t* point){
       point_Page = current_point_page;
       break;
     }
-  }
+  }if(point_pageStack->count == 0 && point_pageStack->prev != nullptr && point_pageStack->prev->count < point_pageStack->prev->capacity)
   current_point_page->count--;
-  if(current_point_page->count==0 && current_point_page!=point_pageStack){
-    delete[] current_point_page->slots;
+  if(current_point_page->count==0 && current_point_page !=point_pageStack){
     delete current_point_page;
   }else if(current_point_page->count==0 && current_point_page==point_pageStack && current_point_page->prev->count == 0){
-    delete[] current_point_page->slots;
     delete current_point_page;
   }
 }
@@ -339,17 +448,15 @@ void deallocate_node(linkage_slot_t* linkage){
   }
   current_linkage_page->count--;
   if(current_linkage_page->count==0 && current_linkage_page!=linkage_pageStack){
-    delete[] current_linkage_page->slots;
     delete current_linkage_page;
   }else if(current_linkage_page->count==0 && current_linkage_page==linkage_pageStack && current_linkage_page->prev->count == 0){
-    delete[] current_linkage_page->slots;
     delete current_linkage_page;
   }
 }
 
 void add_to_table(point_slot_t* new_point){
   if(point_gaps.head != point_gaps.tail){
-    point_slot_t** table_addr = pop_from_gap(&pointsTable);
+    point_slot_t** table_addr = pop_from_gap(pointsTable);
     *table_addr = new_point;
   }else{
     *pointsTable.tail = new_point;
@@ -357,13 +464,15 @@ void add_to_table(point_slot_t* new_point){
   }
 }
 linkage_slot_t** add_to_table(linkage_slot_t* new_linkage){
+  linkage_slot_t** table_addr;
   if(linkage_gaps.head != linkage_gaps.tail){
-    linkage_slot_t** table_addr = pop_from_gap(&linkagesTable);
-    *table_addr = new_linkage;
+    table_addr = pop_from_gap(linkagesTable);
   }else{
-    *linkagesTable.tail = new_linkage;
+    table_addr = linkagesTable.tail;
     linkagesTable.tail++;
   }
+  *table_addr = new_linkage;
+  return table_addr;
 }
 
 void push_to_gap(point_slot_t** table_slot){
@@ -384,14 +493,17 @@ void push_to_gap(linkage_slot_t** table_slot){
 }
 
 point_slot_t** pop_from_gap(const point_indirectionTable_t& table){
-  if(point_gaps.tail - point_gaps.head <= point_gaps.capacity*0.25){
+
+  int active_elements = point_gaps.tail - point_gaps.head;
+  if(active_elements <= point_gaps.capacity*0.25){
     resize_array(point_gaps.head, point_gaps.capacity, 0.5);
-    point_gaps.tail = point_gaps.head + point_gaps.capacity;
+    point_gaps.tail = point_gaps.head + active_elements;
   }
   point_gaps.tail--;
   return *point_gaps.tail;
 }
 linkage_slot_t** pop_from_gap(const linkage_indirectionTable_t& table){
+  
   if(linkage_gaps.tail - linkage_gaps.head <= linkage_gaps.capacity*0.25){
     resize_array(linkage_gaps.head, linkage_gaps.capacity, 0.5);
     linkage_gaps.tail = linkage_gaps.head + linkage_gaps.capacity;
@@ -401,7 +513,7 @@ linkage_slot_t** pop_from_gap(const linkage_indirectionTable_t& table){
 }
 
 void add_to_evaluation(linkage_slot_t** linkage){
-  if(evaluation_order.count = evaluation_order.capacity){
+  if(evaluation_order.count == evaluation_order.capacity){
     resize_array(evaluation_order.head, evaluation_order.capacity, 2);
   }
   regenerate_evaluation_order();
@@ -443,7 +555,7 @@ void regenerate_evaluation_order(){
   int q_head = 0;
   int q_tail = 0;
 
-  for (int i = 0; i < active_point_count; ++i) {
+  for (int i = 0; i < possible_point_count; ++i) {
         if (pointsTable.head[i] != nullptr && parent_counts[i] == 0) {
             zero_dep_q[q_tail++] = i;
         }
@@ -476,4 +588,107 @@ void regenerate_evaluation_order(){
 
     delete[] parent_counts;
     delete[] zero_dep_q;
+}
+
+void clear_buffer(){
+  for(int i=0; i<display.width*display.height;i++){
+    display.buffer[i] = ' ';
+  }
+}
+void add_points_to_buffer(){
+  for(int i=0;i<pointsTable.tail-pointsTable.head;i++){
+    if(pointsTable.head[i] != nullptr){
+      int x_pixel = static_cast<int>((pointsTable.head[i]->data.x-display.x_min)/(display.x_max-display.x_min)*((display.logical_width)-1));
+      int y_pixel = static_cast<int>((pointsTable.head[i]->data.y-display.y_min)/(display.y_max-display.y_min)*(display.height - 1));
+      
+      if (x_pixel < 0 || x_pixel >= display.logical_width || y_pixel < 0 || y_pixel >= display.height) {
+        continue;
+      }
+
+      int base_index = (y_pixel*display.width)+(x_pixel*display.character_width)+1; // +1 -> the base charachter shows the middle of the symbol
+
+      if(i>=100){
+        display.buffer[base_index-1] = (i/100)+'0';
+        display.buffer[base_index] =((i-(i/100))/10)+'0';
+        display.buffer[base_index+1] = (i%10)+'0';
+      }else if(i>=10){
+        display.buffer[base_index-1] = '[';
+        display.buffer[base_index] = (i/10)+'0';
+        display.buffer[base_index+1] = (i%10)+'0';
+      }else{
+        display.buffer[base_index-1] = '[';
+        display.buffer[base_index] = i+'0';
+        display.buffer[base_index+1] = ']';
+      }
+    }
+  }
+}
+void add_linkages_to_buffer(){
+  for(int i = 0; i < linkagesTable.tail - linkagesTable.head; i++){
+    if(linkagesTable.head[i] == nullptr){
+      continue;
+    }
+    linkage_slot_t* linkage = linkagesTable.head[i];
+    int point_a = linkage->data.child;
+    int point_b = linkage->data.parent;
+
+    if (pointsTable.head[point_a] == nullptr || pointsTable.head[point_b] == nullptr) {
+      continue;
+    }
+    double world_x0 = pointsTable.head[point_a]->data.x;
+    double world_y0 = pointsTable.head[point_a]->data.y;
+    double world_x1 = pointsTable.head[point_b]->data.x;
+    double world_y1 = pointsTable.head[point_b]->data.y;
+
+    int x0 = static_cast<int>((world_x0 - display.x_min) / (display.x_max - display.x_min) * (display.logical_width - 1));
+    int y0 = static_cast<int>((world_y0 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
+    int x1 = static_cast<int>((world_x1 - display.x_min) / (display.x_max - display.x_min) * (display.logical_width - 1));
+    int y1 = static_cast<int>((world_y1 - display.y_min) / (display.y_max - display.y_min) * (display.height - 1));
+
+    // 2. Set up Alois Zingl's Symmetric Bresenham Algorithm
+    int dx = std::abs(x1 - x0);
+    int dy = std::abs(y1 - y0);
+    int sx = (x0 < x1) ? 1 : -1;
+    int sy = (y0 < y1) ? 1 : -1;
+    int err = dx - dy;
+
+    while (true) {
+        if (x0 >= 0 && x0 < display.logical_width && y0 >= 0 && y0 < display.height) {
+            int base_idx = (y0 * display.width) + (x0 * display.character_width)+1;// +1 -> the base charachter shows the middle of the symbol
+
+            
+            if (display.buffer[base_idx] != '[' && display.buffer[base_idx] != ']' && !std::isdigit(display.buffer[base_idx])) {
+                display.buffer[base_idx-1] = ' ';
+                display.buffer[base_idx] = linkage->data.render_char;
+                display.buffer[base_idx+1] = ' ';
+            }
+        }
+        if (x0 == x1 && y0 == y1) break;
+
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+  }
+}
+void flush_buffer(){
+  for(int i=0;i<display.width*display.height;i++){
+    std::cout << display.buffer[i];
+    if((i+1)%display.width == 0 && i != 0){
+      std::cout << '\n';
+    }
+  }
+  std::cout << std::endl;  
+}
+void display_nodes(){
+  clear_buffer();
+  add_points_to_buffer();
+  add_linkages_to_buffer();
+  flush_buffer();
 }
