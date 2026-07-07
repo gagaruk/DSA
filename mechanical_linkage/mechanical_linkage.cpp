@@ -133,7 +133,11 @@ void flush_buffer();
 void clear_buffer();
 
 void display_nodes();
-void apply_transformation(int point, const t_matrix);
+void apply_transformation(int point, const t_matrix& matrix);
+
+void reset();
+void reset_points();
+void reset_linkages();
 
 //program objects
 point_indirectionTable_t pointsTable;
@@ -327,13 +331,20 @@ int main(){
                   matrix.m[r][c] = std::stod(val_str);
               }
           }
-
+          matrix.m[2][0] = 0.0;
+          matrix.m[2][1] = 0.0;
+          matrix.m[2][2] = 1.0;
+          
           apply_transformation(pt_idx, matrix);
           std::cout << "Transformation successfully applied!\n";
           break;
         }
-        case 6:
+        case 6:{
+          std::cout << "Reseting the system";
+          reset();
+          std::cout << "Reset successfully made";
           break;
+        }
         default: 
           break;
       }
@@ -858,13 +869,13 @@ void calculate_forward_kinematic(){ //to be used in regenerate evaluation order
       child_pt.global_angle = parent_pt.global_angle + child_pt.local_angle;
       
       child_pt.x = parent_pt.x + linkage.length * std::cos(child_pt.global_angle);
-      parent_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
+      child_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
     }
     else if(linkage.type == ROTATIONAL){
       child_pt.global_angle = parent_pt.global_angle + linkage.base_angle;
 
       child_pt.x = parent_pt.x + linkage.length * std::cos(child_pt.global_angle);
-      parent_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
+      child_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
     }
     else if(linkage.type == VISUAL){
       double dx = parent_pt.x - child_pt.x;
@@ -922,7 +933,7 @@ void reset_linkages(){
 
   delete[] evaluation_order.head;
   delete[] evaluation_order.dependency_orders;
-  
+
   evaluation_order.capacity = 128; // inti cap.
   evaluation_order.head = new linkage_slot_t*[evaluation_order.capacity];
   evaluation_order.dependency_orders = new int[evaluation_order.capacity];
