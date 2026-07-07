@@ -103,14 +103,13 @@ void create_linkage(int parent_point, int child_point, link_type type, char rend
   
 void delete_node(int index);
 void delete_node(int point_a, int point_b);
+void delete_node(linkage_slot_t** table_addr);
 
 point_slot_t* allocate_node(int x, int y);
-linkage_slot_t* 
-allocate_node(int parent_point, int child_point, link_type, char render_char);
+linkage_slot_t* allocate_node(int parent_point, int child_point, link_type, char render_char);
 
 void deallocate_node(point_slot_t*);
 void deallocate_node(linkage_slot_t*);
-
 
 void add_to_table(point_slot_t* new_point);
 linkage_slot_t** add_to_table(linkage_slot_t* new_linkage);
@@ -153,14 +152,14 @@ int main(){
   int op;
 
   while(true){
-    std::cout << "Operations:\n";
-    std::cout << "0. Add point\n"; //complete
-    std::cout << "1. Remove point\n"; //complete
+    std::cout << "\nOperations:\n";
+    std::cout << "0. Add point\n"; //complete* ->asterisk means tested against edge cases
+    std::cout << "1. Remove point\n"; //complete*
 
-    std::cout << "2. Add linkage\n";
-    std::cout << "3. Delete linkage\n";
+    std::cout << "2. Add linkage\n"; //complete*
+    std::cout << "3. Delete linkage\n"; //complete*
 
-    std::cout << "4. Display nodes\n";
+    std::cout << "4. Display nodes\n"; //complete*
     std::cout << "5. Apply Transformation\n";
     std::cout << "6. Reset\n" << std::endl;
 
@@ -244,13 +243,36 @@ int main(){
           std::getline(std::cin, child_str);
           std::cout << "Render char:";
           std::getline(std::cin, render_char_str);
-          std::cout << "Linkage Types: 1.Visual | 2.Rotational | 3.Rigid\n";
+          std::cout << "Linkage Types: 0.Visual | 1.Rotational | 2.Rigid\n";
           std::cout << "Enter the type-number: ";
           std::getline(std::cin, type_str);
 
           parent_idx = std::stoi(parent_str);
           child_idx = std::stoi(child_str);
+
+          int max_point_idx = pointsTable.tail-pointsTable.head;
+          
+          if (parent_idx < 0 || parent_idx >= max_point_idx || pointsTable.head[parent_idx] == nullptr) {
+            std::cout << "Error: Parent point index " << parent_idx << " does not exist or has been deleted.\n\n";
+            continue;
+          }
+
+          if (child_idx < 0 || child_idx >= max_point_idx || pointsTable.head[child_idx] == nullptr) {
+            std::cout << "Error: Child point index " << child_idx << " does not exist or has been deleted.\n\n";
+            continue;
+          }
+
+          else if(parent_idx==child_idx){
+            std::cout << "Cannot create linkage connecting point to itself";
+          }
+          
+
           type = static_cast<link_type>(std::stoi(type_str));
+          if(type<0 or type>2){
+            std::cout << "Linkage type only accepts values 0, 1, 2";
+            continue;
+          }
+
           render_char = (render_char_str.empty()) ? '*' : render_char_str[0];
           create_linkage(parent_idx, child_idx, type, render_char);
           break;
@@ -262,13 +284,15 @@ int main(){
           int point_a_idx;
           int point_b_idx;
 
-          std::cout << "Delete Linkag operation selected";
+          std::cout << "Delete Linkage operation selected\n";
           std::cout << "Enter linkage points:" << std::endl;
-          std::cout << "Point A(index): ";
 
+          std::cout << "Point A(index): ";
           std::getline(std::cin, point_a_str);
-          point_a_idx = std::stoi(point_a_str);
+          std::cout << "Point B(index): ";
           std::getline(std::cin, point_b_str);
+          
+          point_a_idx = std::stoi(point_a_str);
           point_b_idx = std::stoi(point_b_str);
 
           delete_node(point_a_idx,point_b_idx);
@@ -315,29 +339,68 @@ void create_point(int x, int y){
   add_to_table(slot);
 }
 void create_linkage(int parent_point, int child_point, link_type type, char render_char){
-  linkage_slot_t* slot = allocate_node(parent_point, child_point, type, render_char);
-  linkage_slot_t** linkage = add_to_table(slot);
-  add_to_evaluation(linkage);
+  bool exists = false;
+  int possible_linkages= linkagesTable.tail - linkagesTable.head;
+  for(int i=0;i<possible_linkages;i++){
+    if(linkagesTable.head[i]==nullptr) continue;  
+    if(linkagesTable.head[i]->data.child==child_point && linkagesTable.head[i]->data.parent==parent_point ){
+      std::cout << "This linkage already exists";
+      exists = true;
+      break;
+    }
+    if(linkagesTable.head[i]->data.child==parent_point && linkagesTable.head[i]->data.parent==child_point){
+      std::cout << "A linkage with reversed roles exist, deleting the old one";
+      delete_node(linkagesTable.head+i);
+      break;
+    }
+  }
+  if(!exists){
+    linkage_slot_t* slot = allocate_node(parent_point, child_point, type, render_char);
+    linkage_slot_t** linkage = add_to_table(slot);
+    add_to_evaluation(linkage);
+  }
 }
 
 void delete_node(int index){
   point_slot_t** table_addr = pointsTable.head+index;
-  deallocate_node(*table_addr);
-  *table_addr = nullptr;
-  push_to_gap(table_addr);
+  if(*table_addr != nullptr && index<=pointsTable.tail-pointsTable.head){
+    deallocate_node(*table_addr);
+    *table_addr = nullptr;
+    push_to_gap(table_addr);
+
+    int possible_linkage_count = linkagesTable.tail - linkagesTable.head;
+    for(int i=0; i<possible_linkage_count;i++){
+      if(linkagesTable.head[i]->data.child == index || linkagesTable.head[i]->data.parent == index){
+        delete_node(linkagesTable.head + i);
+        break;
+      }
+    }
+  }else{
+    std::cout << " No such point exists";
+  }
 }
 void delete_node(int point_a, int point_b){
   int possible_linkage_count = linkagesTable.tail - linkagesTable.head;
-  linkage_slot_t** table_addr;
+  linkage_slot_t** table_addr = nullptr;
 
   for(int i=0;i < possible_linkage_count;i++){
+    if(linkagesTable.head[i]==nullptr) continue;  
     if((linkagesTable.head[i]->data.child == point_a && linkagesTable.head[i]->data.parent == point_b) || (linkagesTable.head[i]->data.child == point_b && linkagesTable.head[i]->data.parent == point_a)){
       table_addr = linkagesTable.head+i;
+      break;
     }
   }
+  if(table_addr != nullptr){
+    delete_node(table_addr);
+    std::cout << "Linkage successfully deleted.\n";
+  }else{
+    std::cout << "No such linkage exists.\n";
+  }
+}
+void delete_node(linkage_slot_t** table_addr){
   deallocate_node(*table_addr);
-  *table_addr = nullptr;
-  push_to_gap(table_addr);
+    *table_addr = nullptr;
+    push_to_gap(table_addr);
 }
 
 point_slot_t* allocate_node(int x, int y){
@@ -414,43 +477,77 @@ linkage_slot_t* allocate_node(int parent_point, int child_point, link_type type,
 
   return allocation_addr;
 }
-
 void deallocate_node(point_slot_t* point){
+
   point->next_free = point_pageStack->top_free;
   point_pageStack->top_free = point;
 
-  point_page_t* point_Page;
+  point_page_t* point_Page = nullptr;
   point_page_t* current_point_page = point_pageStack;
-  while(current_point_page->prev != nullptr){
-    if(point>current_point_page->slots && point<(current_point_page->slots+ current_point_page->capacity)){
+  point_page_t* parent_of_page = nullptr;
+
+  while(current_point_page != nullptr){
+    if(point >= current_point_page->slots && point < (current_point_page->slots + current_point_page->capacity)){
       point_Page = current_point_page;
       break;
     }
-  }if(point_pageStack->count == 0 && point_pageStack->prev != nullptr && point_pageStack->prev->count < point_pageStack->prev->capacity)
-  current_point_page->count--;
-  if(current_point_page->count==0 && current_point_page !=point_pageStack){
-    delete current_point_page;
-  }else if(current_point_page->count==0 && current_point_page==point_pageStack && current_point_page->prev->count == 0){
-    delete current_point_page;
+    parent_of_page = current_point_page;
+    current_point_page = current_point_page->prev;
+  }
+  if (point_Page != nullptr) {
+    point_Page->count--;
+
+    if(point_Page->count == 0) {
+      if(point_Page == point_pageStack) {
+        if(point_pageStack->prev != nullptr) {
+          point_page_t* page_to_delete = point_pageStack;
+          point_pageStack = point_pageStack->prev;
+          delete page_to_delete;
+        }
+      } else {
+        if(parent_of_page != nullptr) {
+          parent_of_page->prev = point_Page->prev;
+          delete point_Page;
+        }
+      }
+    }
   }
 }
+
 void deallocate_node(linkage_slot_t* linkage){
   linkage->next_free = linkage_pageStack->top_free;
   linkage_pageStack->top_free = linkage;
 
-  linkage_page_t* linkage_Page;
+  linkage_page_t* linkage_Page = nullptr;
   linkage_page_t* current_linkage_page = linkage_pageStack;
-  while(current_linkage_page->prev != nullptr){
-    if(linkage>current_linkage_page->slots && linkage<(current_linkage_page->slots+ current_linkage_page->capacity)){
+  linkage_page_t* parent_of_page = nullptr;
+
+  while(current_linkage_page != nullptr){
+    if(linkage >= current_linkage_page->slots && linkage < (current_linkage_page->slots + current_linkage_page->capacity)){
       linkage_Page = current_linkage_page;
       break;
     }
+    parent_of_page = current_linkage_page;
+    current_linkage_page = current_linkage_page->prev;
   }
-  current_linkage_page->count--;
-  if(current_linkage_page->count==0 && current_linkage_page!=linkage_pageStack){
-    delete current_linkage_page;
-  }else if(current_linkage_page->count==0 && current_linkage_page==linkage_pageStack && current_linkage_page->prev->count == 0){
-    delete current_linkage_page;
+
+  if (linkage_Page != nullptr) {
+    linkage_Page->count--;
+
+    if(linkage_Page->count == 0) {
+      if(linkage_Page == linkage_pageStack) {
+        if(linkage_pageStack->prev != nullptr) {
+          linkage_page_t* page_to_delete = linkage_pageStack;
+          linkage_pageStack = linkage_pageStack->prev;
+          delete page_to_delete;
+        }
+      } else {
+        if(parent_of_page != nullptr) {
+          parent_of_page->prev = linkage_Page->prev;
+          delete linkage_Page;
+        }
+      }
+    }
   }
 }
 
@@ -476,17 +573,15 @@ linkage_slot_t** add_to_table(linkage_slot_t* new_linkage){
 }
 
 void push_to_gap(point_slot_t** table_slot){
-  if(point_gaps.head - point_gaps.tail >= point_gaps.capacity){
+  if(point_gaps.tail - point_gaps.head >= point_gaps.capacity){
     resize_array(point_gaps.head, point_gaps.capacity, 2.0);
-    point_gaps.tail = point_gaps.head + point_gaps.capacity;
   }
   *point_gaps.tail = table_slot;
   point_gaps.tail++;
 }
 void push_to_gap(linkage_slot_t** table_slot){
-  if(linkage_gaps.head - linkage_gaps.tail >= linkage_gaps.capacity){
+  if(linkage_gaps.tail - linkage_gaps.head >= linkage_gaps.capacity){
     resize_array(linkage_gaps.head, linkage_gaps.capacity, 2.0);
-    linkage_gaps.tail = linkage_gaps.head + linkage_gaps.capacity;
   }
   *linkage_gaps.tail = table_slot;
   linkage_gaps.tail++;
@@ -503,10 +598,10 @@ point_slot_t** pop_from_gap(const point_indirectionTable_t& table){
   return *point_gaps.tail;
 }
 linkage_slot_t** pop_from_gap(const linkage_indirectionTable_t& table){
-  
-  if(linkage_gaps.tail - linkage_gaps.head <= linkage_gaps.capacity*0.25){
+  int active_elements = linkage_gaps.tail - linkage_gaps.head;
+  if(active_elements<= linkage_gaps.capacity*0.25){
     resize_array(linkage_gaps.head, linkage_gaps.capacity, 0.5);
-    linkage_gaps.tail = linkage_gaps.head + linkage_gaps.capacity;
+    linkage_gaps.tail = linkage_gaps.head + active_elements;
   }
   linkage_gaps.tail--;
   return *linkage_gaps.tail;
@@ -514,18 +609,33 @@ linkage_slot_t** pop_from_gap(const linkage_indirectionTable_t& table){
 
 void add_to_evaluation(linkage_slot_t** linkage){
   if(evaluation_order.count == evaluation_order.capacity){
-    resize_array(evaluation_order.head, evaluation_order.capacity, 2);
+    int old_capacity = evaluation_order.capacity;
+    resize_array(evaluation_order.head, evaluation_order.capacity, 2.0);
+    
+    // Remember to reallocate your parallel tracking dependencies array too!
+    int* new_deps = new int[evaluation_order.capacity];
+    for(int i = 0; i < old_capacity; i++) {
+        new_deps[i] = evaluation_order.dependency_orders[i];
+    }
+    delete[] evaluation_order.dependency_orders;
+    evaluation_order.dependency_orders = new_deps;
   }
   regenerate_evaluation_order();
 }
-
 void delete_from_evaluation(linkage_slot_t** linkage){
-  if(evaluation_order.count < evaluation_order.capacity*0.25){
+  if(evaluation_order.count < evaluation_order.capacity * 0.25){
+    int old_capacity = evaluation_order.capacity;
     resize_array(evaluation_order.head, evaluation_order.capacity, 0.5);
+    
+    int* new_deps = new int[evaluation_order.capacity];
+    for(int i = 0; i < evaluation_order.capacity; i++) {
+        new_deps[i] = evaluation_order.dependency_orders[i];
+    }
+    delete[] evaluation_order.dependency_orders;
+    evaluation_order.dependency_orders = new_deps;
   }
   regenerate_evaluation_order();
 }
-
 void regenerate_evaluation_order(){
   evaluation_order.count = 0;
 
@@ -551,7 +661,7 @@ void regenerate_evaluation_order(){
     }
   }
 
-  int* zero_dep_q= new int[active_point_count];
+  int* zero_dep_q= new int[possible_point_count];
   int q_head = 0;
   int q_tail = 0;
 
