@@ -80,10 +80,10 @@ struct evaluation_order_t{
 };
 
 struct display_t{
-  static constexpr double x_min = -15.0;
-  static constexpr double x_max = 15.0;
-  static constexpr double y_min = -15.0;
-  static constexpr double y_max = 15.0;
+  static constexpr double x_min = -45.0;
+  static constexpr double x_max = 45.0;
+  static constexpr double y_min = -45.0;
+  static constexpr double y_max = 45.0;
 
   static const int width = 90;
   static const int height = 30;
@@ -334,7 +334,7 @@ int main(){
           matrix.m[2][0] = 0.0;
           matrix.m[2][1] = 0.0;
           matrix.m[2][2] = 1.0;
-          
+
           apply_transformation(pt_idx, matrix);
           std::cout << "Transformation successfully applied!\n";
           break;
