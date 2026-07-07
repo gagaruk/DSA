@@ -842,7 +842,7 @@ void display_nodes(){
   flush_buffer();
 }
 
-void apply_tranformation(int point_idx, const t_matrix& matrix){
+void apply_transformation(int point_idx, const t_matrix& matrix){
   int max_point_idx = pointsTable.tail - pointsTable.head;
   if(point_idx<0 || point_idx>max_point_idx || pointsTable.head[point_idx]==nullptr){
     std::cout << "Invalid point index";
