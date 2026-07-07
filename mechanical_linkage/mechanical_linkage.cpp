@@ -93,6 +93,9 @@ struct display_t{
   
   inline static char buffer[static_cast<int>(width/character_width)*height]; //I know I could I used a string but the goal is keeping it low level u know
 };
+struct t_matrix{
+  double m[3][3];
+};
 
 //program functions
 template <typename T>
@@ -130,6 +133,7 @@ void flush_buffer();
 void clear_buffer();
 
 void display_nodes();
+void apply_transformation(int point, const t_matrix);
 
 //program objects
 point_indirectionTable_t pointsTable;
@@ -160,6 +164,7 @@ int main(){
     std::cout << "3. Delete linkage\n"; //complete*
 
     std::cout << "4. Display nodes\n"; //complete*
+
     std::cout << "5. Apply Transformation\n";
     std::cout << "6. Reset\n" << std::endl;
 
@@ -299,12 +304,34 @@ int main(){
           
           break;
         }
-        case 4:
+        case 4:{
           std::cout << "Display nodes operation selected.\n\n";
           display_nodes();
           break;
-        case 5:
+        }
+        case 5:{
+          std::string point_str;
+          t_matrix matrix;
+
+          std::cout << "Apply Transformation Matrix selected.\n";
+          std::cout << "Enter target Point Index: ";
+          std::getline(std::cin, point_str);
+          int pt_idx = std::stoi(point_str);
+
+          std::cout << "Enter 3x3 Matrix coefficients row by row:\n";
+          for (int r = 0; r < 3; r++) {
+              for (int c = 0; c < 3; c++) {
+                  std::string val_str;
+                  std::cout << "m[" << r << "][" << c << "]: ";
+                  std::getline(std::cin, val_str);
+                  matrix.m[r][c] = std::stod(val_str);
+              }
+          }
+
+          apply_transformation(pt_idx, matrix);
+          std::cout << "Transformation successfully applied!\n";
           break;
+        }
         case 6:
           break;
         default: 
@@ -320,9 +347,7 @@ int main(){
 
 template <typename T>
 void resize_array(T*& array_ptr, int& current_capacity, double resize_factor){
-  static const int _growth_factor=2;
-
-  int new_capacity = (current_capacity == 0) ? 8 : current_capacity * _growth_factor;
+  int new_capacity = (current_capacity == 0) ? 8 : current_capacity * resize_factor;
 
   T* new_array = new T[new_capacity];
   for(int i=0; i<current_capacity;i++){
@@ -698,6 +723,8 @@ void regenerate_evaluation_order(){
 
     delete[] parent_counts;
     delete[] zero_dep_q;
+
+    calculate_forward_kinematic();
 }
 
 void clear_buffer(){
@@ -801,4 +828,103 @@ void display_nodes(){
   add_points_to_buffer();
   add_linkages_to_buffer();
   flush_buffer();
+}
+
+void apply_tranformation(int point_idx, const t_matrix& matrix){
+  int max_point_idx = pointsTable.tail - pointsTable.head;
+  if(point_idx<0 || point_idx>max_point_idx || pointsTable.head[point_idx]==nullptr){
+    std::cout << "Invalid point index";
+    return;
+  }
+
+  point_t& pt = pointsTable.head[point_idx]->data;
+
+  double new_x = pt.x * matrix.m[0][0] + pt.y * matrix.m[0][1] + 1.0 * matrix.m[0][2];
+  double new_y = pt.x * matrix.m[1][0] + pt.y * matrix.m[1][1] + 1.0 * matrix.m[1][2];
+
+  pt.x = new_x;
+  pt.y = new_y;
+
+  regenerate_evaluation_order();
+}
+void calculate_forward_kinematic(){ //to be used in regenerate evaluation order
+  for(int i=0; i<evaluation_order.count; i++){
+    linkage_t& linkage = evaluation_order.head[i]->data;  //use references when able to ptr 2nd choice (refs cant be reassigned nor null)
+
+    point_t& parent_pt = pointsTable.head[linkage.parent]->data;
+    point_t& child_pt = pointsTable.head[linkage.child]->data;
+
+    if(linkage.type == RIGID){
+      child_pt.global_angle = parent_pt.global_angle + child_pt.local_angle;
+      
+      child_pt.x = parent_pt.x + linkage.length * std::cos(child_pt.global_angle);
+      parent_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
+    }
+    else if(linkage.type == ROTATIONAL){
+      child_pt.global_angle = parent_pt.global_angle + linkage.base_angle;
+
+      child_pt.x = parent_pt.x + linkage.length * std::cos(child_pt.global_angle);
+      parent_pt.x = child_pt.x + linkage.length * std::sin(child_pt.global_angle);
+    }
+    else if(linkage.type == VISUAL){
+      double dx = parent_pt.x - child_pt.x;
+      double dy = parent_pt.y - child_pt.y;
+      
+      linkage.length = std::sqrt((dx*dx)+(dy*dy));
+      linkage.base_angle = (dx==0.0 ||(dx==0.0 && dy==0.0)) ? 0.0 : std::atan2(dy,dx);
+    }
+  }
+}
+
+void reset(){
+  reset_points();
+  reset_linkages();
+}
+void reset_points(){
+  point_page_t* current_page = point_pageStack;
+  while(current_page != nullptr){
+    point_page_t* next_to_delete = current_page->prev;
+    delete current_page;
+    current_page = next_to_delete;
+  }
+
+  point_pageStack = new point_page_t;
+
+  delete[] pointsTable.head;
+  pointsTable.capacity = 128; // initial cap.
+  pointsTable.head = new point_slot_t*[pointsTable.capacity];
+  pointsTable.tail = pointsTable.head;
+
+  delete[] point_gaps.head;
+  point_gaps.capacity = 128; // initial cap.
+  point_gaps.head = new point_slot_t**[point_gaps.capacity];
+  point_gaps.tail = point_gaps.head;
+}
+void reset_linkages(){
+  linkage_page_t* current_page = linkage_pageStack;
+  while(current_page != nullptr){
+    linkage_page_t* next_to_delete = current_page->prev;
+    delete current_page;
+    current_page = next_to_delete;
+  }
+
+  linkage_pageStack = new linkage_page_t;
+
+  delete[] linkagesTable.head;
+  linkagesTable.capacity = 128; // init cap.
+  linkagesTable.head = new linkage_slot_t*[linkagesTable.capacity];
+  linkagesTable.tail = linkagesTable.head;
+
+  delete[] linkage_gaps.head;
+  linkage_gaps.capacity = 128; // init cap.
+  linkage_gaps.head = new linkage_slot_t**[linkage_gaps.capacity];
+  linkage_gaps.tail = linkage_gaps.head;
+
+  delete[] evaluation_order.head;
+  delete[] evaluation_order.dependency_orders;
+  
+  evaluation_order.capacity = 128; // inti cap.
+  evaluation_order.head = new linkage_slot_t*[evaluation_order.capacity];
+  evaluation_order.dependency_orders = new int[evaluation_order.capacity];
+  evaluation_order.count = 0;
 }
