@@ -3,6 +3,9 @@
 
 ##A very simple mechanical linkage simulator that works in the terminal with a focus on how data is stored
 
+![Terminal Demo](./assets/demo.gif)
+
+
 With this porject here are the things you can do:
     *Create and delete points
     *Create linkages of type:
@@ -15,5 +18,5 @@ With this porject here are the things you can do:
         -Shifting
     *Render the points and linkages
     *Reset the system
-    
+
     
