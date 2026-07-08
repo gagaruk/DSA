@@ -4,6 +4,9 @@
 
 ## $\color{red}{\text{TRY IT YOURSELF -> download the .exe}}$
 
+[📥 Download the executable](https://github.com/gagaruk/DSA/blob/main/mechanical_linkage/mechanical_linkage.exe)
+[👾 Download the code](https://github.com/gagaruk/DSA/blob/main/mechanical_linkage/mechanical_linkage.cpp)
+
 ## Quick Start
 prequsities: c++ compiler (if you want to change the code) -> Personal choice use g++
 
