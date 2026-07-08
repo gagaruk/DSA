@@ -74,15 +74,37 @@ The Menu:\
 .            display_nodes()                      |--------| Deletion |---- delete_node() -------------> deallocate_node()
 .                     |-clear_buffer()            |                                                           |->works cascadingly when points having linkages del
 . add_points_to_buffer|                           |--------| Transform |--- apply_transform()
-.                     |-add_linkages_to_buffer()                                    |-> regenerate_evaluation_order() --- calculate_forward_kinematics()
+.                     |-add_linkages_to_buffer()                                    |-> regenerate_evaluation_order() --- calculate_forward_kinematics()th
 .     flush_buffer()--|                order to calculate position<-----evaluation_order re_ordered<--|                        |calculates affects of the moved point
 .                     |                                             (called after every linkage operation)                      with linkage types
 .                   buffer -> static array of display image
 ```
+### the WHAT and the WHY >:]
+dict: node= linkage/point
+
+-> The pages store the points/linkages themselves and not pointers. This purpose of this is to cluster the chunks of data together so that they won't get scattered in the memory and get in the way of some other large data structure. This might not matter when you're on a computer that much since the data is relatively small, but if this was to be used with a microcontroller (which I'm going to do) every single memory address is important. When the pages are full another page with the same static array size is added to it resulting in a stack data structure from a reversed-linked-list. I decided on this after learning how databanks used hardisks which are sometimes called "Blocks" instead of "pages".\
+\
+-> You might be wondering then why would we need an indirection table (pointsTable & linkagesTable). This because we actually don't have a way of explicitly dereferencing a node in this system without deallocating the whole array. So deleting a point would mean keeping a list of points which are deleted. And every operation would have to scan that list at every single n elements. Which is bad (from and efficiency standpoint). And most of all we can't add our own deletion or some other kind of logic to how the points are being stored. This indirection table acts as a middle-man giving access to points through their indexes or pointers(kinda samething). If a point is deleted we set it to nullptr and thats it. Thats the single case we need to check which drops the time-complexity to O(n). I heard indirection tables were used in game engines so that came from that. The indirection pages are dynamic pages and double up and double down based on the count of its active nodes btw.
+
+->This leads us to our next point: node deletion; How this works is through gaps_tables which hold the indexes of the indirection table. They store the indexes of the last deleted nodes in order to fill them up first to avoid scaling with gaps in between. Other than that; as said the table value at that index is set to nullptr to avoid scaning the gaps table on every new point.
+
+->Something similiar also exist in the pages. But before that its worth mentioning that the tables store unions of 1.point data * 2.pointer to a union called next_free. Since the pointer is smaller than the point data this doesn't occupy any more memory than storing only points. This allows us to use the same places as linked lists without set items but rather potential items- and I created once again a STAAAACK!. The systems goes through this reversed-linked-list with the top item called next_free before alocating a new point with the tail pointer/count variable.
+Other than that when the last two lists are empty the top one from the stack is deallocated.
+
+->But what happens when the deleted point exist in a linkage? The linkage gets deleted just like that. But afterwards it is import to call the regenerate_evaluation_order function. Actually this function needs to be called after every linkage addition\ deletion\ position change.
+
+-> What does regenerate_evaluation_order() do? It genereates a list of linkages orderd based on the relationships between them, namely the linkages with the parent points come before the linkages with the child points. It does that by first creating a separate array with the parent numbers. To establish a starting condition it gets the nodes with 0 parents and reducing the parent counts of their children moving to the next layer of node afterwards to do the same again recursively until no other node is left on the list. Aaaaanndd this genereates an ordered list based on hierarchy.
+
+->What do we need this for you might ask. Well for applying the matrix transformations of course. The shifting is self-explanatory : the same shift happens. What about rotations you, might ask? Okay okay I'm stoping that. The points all have a local and a global angle variable which corresponds to their angle with respect to the origin (0,0)-global- and their angle with the other point it self. And the linkages also have base angles too. Simply put you can take these into reference and add up these together to calculate the child_points change in angle which gives the rotation. The base_angles importance comes very clearly across in rotational linkages. This calculation is done by the calculate_forward_kinematic being called in the apply_transformation function. I should underline that the calculate_forward_kinematic() function is the one using the evaluation_order table as refernce. And it took painstakingly long to make it work.
+
+->All of this would be for nothing if there wasn't a way to display them. This was actually an interesting problem to tackle since the x and y values are double's and the pixels are integers. I choose to look into it a bit and saw found the repo of @zingle. It had a version of this algorithm called the Bremsenhams algorithm which is the standard line through pixels logic multiplies by two. But for some reason it took me a while to understand it. And thanks to zingle once again for writing this.
+
+->Finally resetting works by deallocating and reallocating every array and then giving the other attributes of the struct their initial values.
+
 
 ## Acknowledgment and helpfull links
 
-For the rasterization algorithm thanks: Alois Zingl \
+For the rasterization algorithm thanks: Zingl \
 repo: https://github.com/zingl/Bresenham ........................[<img src="https://contrib.rocks/image?repo=zingl/Bresenham" />]([https://github.com](https://github.com/zingl/Bresenham/graphs/contributors))
 
 How can something so simple be so confusing?
