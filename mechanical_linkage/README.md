@@ -45,16 +45,29 @@ The Menu:\
         -> g++ mechanical_linkage.cpp -o mechanical_linkage
         -> run it as exe afterwards
 
-## $\color{red}{\text{How it works}}$
-`                                                                                                                               reversed-linked-list<--|
+## The Example shown above
+0. Select 0 Create Point -> X:0 , Y:0
+1. Select 0 Create Point -> X:6 , Y:0   
+2. Select 0 Create Point -> X:6 , Y:6    
+3. Select 4 Displays the points ->  3 points forming a corner
+4. Select 2 Add linkage -> Parent: 0(index of point), Child: 1, render_char: '*", type:2(Rigid)
+5. Select 2 Add linkage -> Parent: 0(index of point), Child: 1, render_char: '*", type:1(Rotational)
+6. Select 4 Displays the points ->  Lines between points
+7. Select 5 Transform -> point: 0, matrix=[ 0,-1,0,1,0,0,0,0,1]
+8. Select 4 Display the points -> Points rotated 90"
+9. Select 5 Transform -> point: 2, matrix= [0,1,0,-1,0,0,0,0,1]
+10. Select 4 Display the points -> the linkages point up
+
+## $\color{red}{\text{How it works (Diagram)}}$
+```                                                                                                                               reversed-linked-list<--|
 .                                                                                                                 |---->point_data & pointer to next stack node
 .                                                                  Relevant Page(point/linkage)[static array of unions]  
-.                                                                                 /\  | 
+.                                                                                 ^  | 
 .              -------------    user input  ----------                  node data |   | page_addr                     |---> rest of the program refers
-.             |  Terminal  |---------------| Program |                            |  \/        page_addr              |        to nodes with table indexes
+.             |  Terminal  |---------------| Program |                            |   |/        page_addr              |        to nodes with table indexes
 .             -------------                ----------                       allocate_node() -------------> relevant indirectionTable(points/linkages)---------------|
 .                   ^                             |                               |                                   |                                            
-.              image|                             |                               |                                   |-pop_from_gap() 
+.              image|                             |                               |                                   |-pop_from_gap()
 .              | Rendering | ---------------------|--------| Creation |---- create_node()                                     |          |--dynamic array table_addr
 .                    |                            |                               |                                           |<-----relevent gap ->track empty addr
 .                   |                            |                               |---------------------------------------->push_to_gap()            befor tail
@@ -62,10 +75,11 @@ The Menu:\
 .                     |-clear_buffer()            |                                                           |->works cascadingly when points having linkages del
 . add_points_to_buffer|                           |--------| Transform |--- apply_transform()
 .                     |-add_linkages_to_buffer()                                    |-> regenerate_evaluation_order() --- calculate_forward_kinematics()
-.     flush_buffer()--|                order to calculate position<-----evaluation_order re_ordered<--|                         |calculates affects of the moved point
-.                     |                                             (called after every linkage operation)                       with linkage types
+.     flush_buffer()--|                order to calculate position<-----evaluation_order re_ordered<--|                        |calculates affects of the moved point
+.                     |                                             (called after every linkage operation)                      with linkage types
 .                   buffer -> static array of display image
-`
+```
+
 ## Acknowledgment and helpfull links
 
 For the rasterization algorithm thanks: Alois Zingl \
