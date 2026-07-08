@@ -3,6 +3,7 @@
 <img width="1516" height="1008" alt="mechanical_linkage0 (2)" src="https://github.com/user-attachments/assets/4baf4ee8-0e4c-4bec-a62e-e32f86523d87" />
 
 ## $\color{red}{\text{TRY IT YOURSELF -> download the .exe}}$
+#### $\color{red}{\text{TNecessay terminal size 90 chars wide, 30 lines long if the settings are not chaged }}$
 
 [📥 Download the executable](https://github.com/gagaruk/DSA/blob/main/mechanical_linkage/mechanical_linkage.exe)
 [👾 Download the code](https://github.com/gagaruk/DSA/blob/main/mechanical_linkage/mechanical_linkage.cpp)
