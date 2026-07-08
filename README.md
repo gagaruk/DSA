@@ -3,7 +3,7 @@
 <img width="1516" height="1008" alt="mechanical_linkage0 (2)" src="https://github.com/user-attachments/assets/4baf4ee8-0e4c-4bec-a62e-e32f86523d87" />
 
 ## $\color{red}{\text{TRY IT YOURSELF -> download the .exe}}$
-#### $\color{red}{\text{TNecessay terminal size 90 chars wide, 30 lines long if the settings are not chaged }}$
+#### $\color{red}{\text{Necessay terminal size 90 chars wide, 30 lines long if the settings are not chaged }}$
 
 [![🎮DEMO in Codespaces]](https://codespaces.new/gagaruk/mechanical_linkage)\
 [👾 Download the code](https://github.com/gagaruk/DSA/blob/main/mechanical_linkage/mechanical_linkage.cpp)
@@ -11,6 +11,7 @@
 ## Quick Start
 prequsities: c++ compiler (if you want to change the code) -> Personal choice use g++
 
+#### $\color{red}{\text{These two steps are also necessary in the demo}}$
 1. g++ mechanical_linkage.cpp -o mechanical_linkage -> compile the code or download the exe
 2. ./mechanical_linkage -> run the exe
 
