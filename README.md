@@ -118,3 +118,6 @@ Learning:\
     -4 data structures: *https://www.youtube.com/watch?v=CHhwJjR0mZA&list=PLUl4u3cNGP63EdVPNLG3ToM6LaEUuStEY&index=2\
                         *https://www.geeksforgeeks.org/dsa/how-do-dynamic-arrays-work/\
                         *http://youtube.com/playlist?list=PLDN4rrl48XKp1ubbVUHVrOMkO4rTsjXrg\
+
+## AI use
+AI is used in debugging process of this project
