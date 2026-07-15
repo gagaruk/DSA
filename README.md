@@ -42,7 +42,10 @@ The Menu:\
                     
 
 ## How to run it
-    using .exe -> .\mechanical_linkage
+    using .zip:
+        -> 1.  unzip the file
+        -> 2. run the .exe
+        
     using .cpp (using g++ as compiler) 
         -> g++ mechanical_linkage.cpp -o mechanical_linkage
         -> run it as exe afterwards
